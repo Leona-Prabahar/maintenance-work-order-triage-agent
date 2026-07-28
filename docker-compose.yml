@@ -1,0 +1,84 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: triage-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-maintenance}
+      # Consumed by the init script that provisions the least-privilege account.
+      DB_USER: ${DB_USER:-triage_app}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      # Published so you can inspect the database with MySQL Workbench or a CLI.
+      # Bound to 127.0.0.1 so it is reachable from this machine only, and mapped
+      # to 3307 to avoid clashing with a MySQL you may already run on 3306.
+      # Drop this whole block in production — nothing outside the compose
+      # network needs to reach the database.
+      - "127.0.0.1:${DB_HOST_PORT:-3307}:3306"
+    networks: [triage-net]
+
+  mcp-server:
+    build: ./mcp-server
+    container_name: triage-mcp
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: ${DB_NAME:-maintenance}
+      MYSQL_USER: ${DB_USER:-triage_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8001"
+      MAX_ROWS: "200"
+      # Shared with the backend. The write tool refuses any call whose approval
+      # token is not signed with this secret.
+      APPROVAL_SIGNING_SECRET: ${APPROVAL_SIGNING_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose: ["8001"]
+    networks: [triage-net]
+
+  backend:
+    build: ./backend
+    container_name: triage-backend
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      MCP_SERVER_URL: http://mcp-server:8001/mcp
+      APPROVAL_SIGNING_SECRET: ${APPROVAL_SIGNING_SECRET}
+      APPROVAL_TTL_SECONDS: ${APPROVAL_TTL_SECONDS:-120}
+      SAFETY_CREW_CODE: ${SAFETY_CREW_CODE:-SRR-D}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    depends_on:
+      - mcp-server
+    ports:
+      - "8000:8000"
+    networks: [triage-net]
+
+  frontend:
+    build: ./frontend
+    container_name: triage-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks: [triage-net]
+
+volumes:
+  db_data:
+
+networks:
+  triage-net:
+    driver: bridge
