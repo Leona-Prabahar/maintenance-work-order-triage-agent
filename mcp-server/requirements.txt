@@ -1,4 +1,4 @@
-mcp>=1.9.0
+mcp==1.28.1
 PyMySQL>=1.1.0
 # Required for MySQL 8's default caching_sha2_password authentication over the network.
 cryptography>=42.0.0
