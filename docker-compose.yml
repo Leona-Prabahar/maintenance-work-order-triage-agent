@@ -63,7 +63,7 @@ services:
     depends_on:
       - mcp-server
     ports:
-      - "8000:8000"
+      - "8001:8000"
     networks: [triage-net]
 
   frontend:
@@ -73,7 +73,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:80"
+      - "3001:80"
     networks: [triage-net]
 
 volumes:
