@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 
 from .agent import AgentError, triage_queue
 from .assignments import ApprovalError, assign_with_approval
@@ -58,7 +58,7 @@ app.add_middleware(
 async def health() -> HealthResponse:
     mcp_connected = False
     try:
-        async with streamablehttp_client(settings.mcp_server_url) as (r, w, _):
+        async with streamable_http_client(settings.mcp_server_url) as (r, w, _):
             async with ClientSession(r, w) as session:
                 await session.initialize()
                 await session.list_tools()

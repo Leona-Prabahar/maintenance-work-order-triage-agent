@@ -26,7 +26,7 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 
 from .config import settings
 from .safety import (
@@ -186,7 +186,7 @@ async def triage_queue(include_assigned: bool = False, limit: int = 100) -> dict
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
     notes: list[str] = []
 
-    async with streamablehttp_client(settings.mcp_server_url) as (read, write, _):
+    async with streamable_http_client(settings.mcp_server_url) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
 

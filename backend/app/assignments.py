@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client, streamable_http_client
 
 from .agent import _tool_result_to_data
 from .approval_token import ApprovalTokenError, mint_grant
@@ -58,7 +58,7 @@ async def assign_with_approval(request: AssignmentRequest) -> dict:
         request.urgency,
     )
 
-    async with streamablehttp_client(settings.mcp_server_url) as (read, write, _):
+    async with streamable_http_client(settings.mcp_server_url) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             result = _tool_result_to_data(
